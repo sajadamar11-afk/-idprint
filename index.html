@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d2b6b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>طباعة الهويات</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="طباعة الهويات">
+<style>
+/* ========== الأساسيات ========== */
+:root{
+  --navy:#0d2b6b; --navy-2:#081d4a; --blue:#1b5fb5;
+  --green:#1e7a3c; --green-2:#16602e;
+  --bg:#eef1f6; --card:#ffffff; --line:#c9d1de;
+  --ink:#16202f; --mut:#5d6b80; --red:#b03434;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Segoe UI","Noto Sans Arabic",Tahoma,"Droid Arabic Kufi",sans-serif;
+  font-size:15px; line-height:1.5;
+  overscroll-behavior-y:contain;
+}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:0}
+input,select{font-family:inherit;font-size:16px}
+
+/* ========== شاشة القفل ========== */
+#lock{
+  position:fixed;inset:0;z-index:99;background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:24px;
+}
+#lock .logo{width:96px;height:96px;margin-bottom:6px}
+#lock h1{color:#fff;font-size:19px;margin:0;text-align:center;font-weight:700}
+#lock p{color:#a9c4ff;font-size:13px;margin:0 0 8px}
+#lock input{
+  width:min(260px,80vw);padding:13px;border-radius:10px;border:0;
+  text-align:center;letter-spacing:6px;font-size:20px
+}
+#lock button{
+  width:min(260px,80vw);padding:13px;border-radius:10px;
+  background:var(--green);color:#fff;font-weight:700;font-size:16px
+}
+#lockErr{color:#ffb4b4;font-size:13px;height:18px;margin:0}
+
+/* ========== الترويسة ========== */
+header{
+  background:var(--navy);color:#fff;padding:10px 12px calc(8px + env(safe-area-inset-top,0)/2);
+  padding-top:calc(10px + env(safe-area-inset-top,0));
+}
+header h1{font-size:15px;margin:0;font-weight:700;text-align:center;line-height:1.35}
+header .sub{font-size:11px;color:#a9c4ff;text-align:center;margin-top:2px}
+
+/* شريط الأيقونات */
+#tools{
+  display:flex;gap:6px;overflow-x:auto;padding:8px 10px;
+  background:#dfe4ec;border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:19;scrollbar-width:none
+}
+#tools::-webkit-scrollbar{display:none}
+#tools button{
+  flex:0 0 auto;background:#f4f6fa;border:1px solid #cdd6e4;border-radius:10px;
+  padding:7px 10px;min-width:62px;color:#12325f;font-size:10px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600
+}
+#tools button b{font-size:17px;font-weight:400;line-height:1}
+#tools button:active{background:#cdd6e4}
+#tools .t-print{background:#d8ecdd;border-color:#a9d3b6;color:#12551f}
+
+/* ========== المعاينة ========== */
+#previewWrap{background:#c8ced9;padding:12px;text-align:center}
+#previewBox{
+  display:inline-block;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.28);
+  max-width:min(100%,34vh);position:relative
+}
+#preview{display:block;width:100%;height:auto}
+#pinfo{font-size:12px;color:#3b465a;padding-top:7px}
+#pinfo.warn{color:var(--red);font-weight:700}
+
+/* ========== الأقسام ========== */
+main{padding:10px 10px 120px}
+section{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  margin-bottom:10px;overflow:hidden
+}
+section>h2{
+  margin:0;font-size:14px;padding:12px 14px;background:#f5f7fb;
+  border-bottom:1px solid var(--line);color:var(--navy);
+  display:flex;align-items:center;justify-content:space-between;font-weight:700
+}
+section>h2 .chev{font-size:12px;color:var(--mut);transition:transform .18s}
+section.closed>h2 .chev{transform:rotate(-90deg)}
+section.closed .body{display:none}
+.body{padding:12px 14px}
+
+/* خانات الهويات */
+.slot{border:1px solid #dde3ec;border-radius:10px;padding:9px;margin-bottom:9px;background:#fbfcfe}
+.slot .cap{font-size:12px;color:var(--mut);margin-bottom:7px;font-weight:700}
+.slot .row{display:flex;gap:7px}
+.pick{
+  flex:1;background:#eef1f7;border:1px solid #d3dae6;border-radius:9px;
+  padding:11px 6px;font-size:13px;color:#22314c;font-weight:600
+}
+.pick.done{background:#d7edda;border-color:#a5d2b0;color:#12551f}
+.pick:active{background:#dde3ec}
+.slot .del{
+  width:42px;background:#f7e6e6;border:1px solid #e3c4c4;color:#a33;border-radius:9px;font-size:15px
+}
+.thumbs{display:flex;gap:6px;margin-top:7px}
+.thumbs img{height:38px;border-radius:5px;border:1px solid #d3dae6}
+
+/* الحقول */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.f{display:block;font-size:12px;color:var(--mut);margin-bottom:4px;font-weight:600}
+.num{
+  width:100%;padding:10px;border:1px solid #d3dae6;border-radius:9px;
+  text-align:center;background:#fff
+}
+.presets{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.presets button{
+  background:#e7ecf5;border:1px solid #d3dae6;border-radius:8px;
+  padding:7px 10px;font-size:12px;color:#22314c;font-weight:600
+}
+.chk{display:flex;align-items:center;gap:8px;margin-top:11px;font-size:13px}
+.chk input{width:19px;height:19px;accent-color:var(--navy)}
+
+/* المؤثرات */
+.sld{margin-bottom:13px}
+.sld .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.sld .top b{color:var(--blue);font-variant-numeric:tabular-nums}
+.sld input[type=range]{width:100%;accent-color:var(--navy);height:26px}
+
+/* ========== الأزرار السفلية ========== */
+#actions{
+  position:fixed;bottom:0;right:0;left:0;z-index:22;
+  background:rgba(238,241,246,.97);backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);
+  padding:9px 10px calc(9px + env(safe-area-inset-bottom,0));
+  display:flex;flex-direction:column;gap:7px
+}
+#actions .main{
+  width:100%;padding:15px;border-radius:12px;background:var(--green);
+  color:#fff;font-size:17px;font-weight:700
+}
+#actions .main:active{background:var(--green-2)}
+#actions .row{display:flex;gap:7px}
+#actions .row button{
+  flex:1;padding:12px;border-radius:11px;color:#fff;font-size:13px;font-weight:700
+}
+.b-pdf{background:var(--blue)} .b-save{background:var(--navy)} .b-share{background:#4a5566}
+
+/* ========== نوافذ ========== */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(8,20,45,.62);display:none;
+  align-items:center;justify-content:center;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:#fff;border-radius:14px;width:100%;max-width:360px;overflow:hidden;
+  max-height:92vh;display:flex;flex-direction:column}
+.modal h3{margin:0;background:var(--navy);color:#fff;padding:13px;font-size:15px;text-align:center;flex:0 0 auto}
+.modal .in{padding:15px;overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch}
+.modal .in p{margin:0 0 10px;font-size:13.5px;color:#33405a;line-height:1.75}
+.modal input{width:100%;padding:11px;border:1px solid #d3dae6;border-radius:9px;
+  text-align:center;margin-bottom:9px}
+.modal .btns{display:flex;gap:8px;padding:12px 15px calc(12px + env(safe-area-inset-bottom,0));
+  flex:0 0 auto;background:#fff;border-top:1px solid var(--line);
+  box-shadow:0 -4px 12px rgba(10,20,45,.10)}
+.modal .btns button{flex:1;padding:12px;border-radius:10px;font-weight:700;color:#fff}
+.ok{background:var(--green)} .no{background:#8a919c}
+
+#busy{position:fixed;inset:0;z-index:80;background:rgba(8,20,45,.55);display:none;
+  align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700}
+#busy.on{display:flex}
+#busy div{background:var(--navy);padding:18px 26px;border-radius:12px}
+
+.tiny{background:#e7ecf5;border:1px solid #d3dae6;border-radius:8px;padding:8px 10px;
+  font-size:12px;color:#22314c;font-weight:600}
+#toast{position:fixed;bottom:118px;right:50%;transform:translateX(50%);z-index:90;
+  background:#16202f;color:#fff;padding:11px 18px;border-radius:22px;font-size:13px;
+  opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;text-align:center}
+#toast.on{opacity:.96}
+
+/* ========== الطباعة ========== */
+#printArea{display:none}
+@page{size:A4 portrait;margin:0}
+@media print{
+  body{background:#fff}
+  body>*{display:none !important}
+  #printArea{display:block !important}
+  #printArea img{width:210mm;height:297mm;display:block}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<!-- ============ شاشة الدخول ============ -->
+<div id="lock">
+  <svg class="logo" viewBox="0 0 256 256" aria-hidden="true">
+    <rect x="18" y="46" width="220" height="164" rx="20" fill="#1b5fb5"/>
+    <rect x="30" y="58" width="196" height="140" rx="14" fill="#f5f7fc"/>
+    <path d="M30 72a14 14 0 0114-14h168a14 14 0 0114 14v20H30z" fill="#0d2b6b"/>
+    <rect x="48" y="106" width="64" height="74" rx="8" fill="#becadc"/>
+    <circle cx="80" cy="134" r="16" fill="#7888a0"/>
+    <path d="M56 190a24 24 0 0148 0z" fill="#7888a0"/>
+    <rect x="128" y="114" width="82" height="12" rx="6" fill="#a0b0c6"/>
+    <rect x="128" y="136" width="60" height="12" rx="6" fill="#a0b0c6"/>
+    <rect x="128" y="158" width="38" height="12" rx="6" fill="#a0b0c6"/>
+    <rect x="150" y="168" width="64" height="18" rx="6" fill="#1e7a3c"/>
+  </svg>
+  <h1>نظام طباعة الهويات والبطاقات</h1>
+  <p>يرجى إدخال رمز الدخول</p>
+  <input id="lockPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off">
+  <p id="lockErr"></p>
+  <button id="lockBtn">دخول</button>
+</div>
+
+<!-- ============ الترويسة ============ -->
+<header>
+  <h1>نظام طباعة الهويات والبطاقات الاحترافي</h1>
+  <div class="sub" id="devLine">تطوير وتصميم: سجاد الزويني</div>
+</header>
+
+<div id="tools">
+  <button id="tOpen"><b>🗀</b>فتح صورة</button>
+  <button id="tRot"><b>↻</b>تدوير</button>
+  <button id="tClear"><b>🗑</b>مسح الكل</button>
+  <button id="tPrint" class="t-print"><b>🖨</b>طباعة</button>
+  <button id="tSave"><b>💾</b>حفظ صورة</button>
+  <button id="tPdf"><b>📄</b>حفظ PDF</button>
+  <button id="tShare"><b>📤</b>مشاركة</button>
+  <button id="tPass"><b>🔑</b>الرمز</button>
+  <button id="tHelp"><b>❔</b>مساعدة</button>
+  <button id="btnInstall" style="display:none"><b>⬇</b>تنصيب</button>
+  <button id="iosTip" style="display:none"><b>⬇</b>تنصيب</button>
+</div>
+
+<!-- ============ المعاينة ============ -->
+<div id="previewWrap">
+  <div id="previewBox"><canvas id="preview" width="794" height="1123"></canvas></div>
+  <div id="pinfo">لم يتم تحميل أي صورة بعد</div>
+</div>
+
+<!-- ============ الأقسام ============ -->
+<main>
+  <section id="sec1">
+    <h2>١. اختيار الهويات (حتى ٤ هويات مختلفة) <span class="chev">▼</span></h2>
+    <div class="body" id="slots"></div>
+  </section>
+
+  <section id="sec2">
+    <h2>٢. إعدادات الورقة والقياس <span class="chev">▼</span></h2>
+    <div class="body">
+      <div class="grid">
+        <div><label class="f">العرض (سم)</label>
+          <input class="num" id="cardW" type="number" step="0.1" min="3" max="20" value="8.6"></div>
+        <div><label class="f">الارتفاع (سم)</label>
+          <input class="num" id="cardH" type="number" step="0.1" min="2" max="28" value="5.6"></div>
+        <div><label class="f">عدد الهويات بالورقة</label>
+          <input class="num" id="count" type="number" step="1" min="1" max="4" value="4"></div>
+        <div><label class="f">عدد النسخ</label>
+          <input class="num" id="copies" type="number" step="1" min="1" max="4" value="1"></div>
+        <div><label class="f">الهامش (سم)</label>
+          <input class="num" id="margin" type="number" step="0.1" min="0" max="5" value="1"></div>
+        <div><label class="f">التباعد (سم)</label>
+          <input class="num" id="gap" type="number" step="0.1" min="0" max="3" value="0.4"></div>
+      </div>
+      <div class="presets">
+        <button data-w="8.6" data-h="5.6">هوية ٨.٦ × ٥.٦</button>
+        <button data-w="8.5" data-h="5.4">بطاقة ٨.٥ × ٥.٤</button>
+        <button data-w="12.5" data-h="8.8">جواز ١٢.٥ × ٨.٨</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="cut" checked> إظهار خطوط القص</label>
+      <label class="chk"><input type="checkbox" id="autorot" checked> تدوير تلقائي للصور المقلوبة</label>
+    </div>
+  </section>
+
+  <section id="sec3">
+    <h2>٣. تعديل الإضاءة والوضوح <span class="chev">▼</span></h2>
+    <div class="body">
+      <div class="sld"><div class="top"><span>السطوع</span><b id="vB">1.00</b></div>
+        <input type="range" id="bright" min="0.4" max="1.8" step="0.02" value="1"></div>
+      <div class="sld"><div class="top"><span>التباين</span><b id="vC">1.00</b></div>
+        <input type="range" id="contrast" min="0.4" max="1.8" step="0.02" value="1"></div>
+      <div class="sld"><div class="top"><span>الحدة</span><b id="vS">1.00</b></div>
+        <input type="range" id="sharp" min="0.4" max="1.8" step="0.02" value="1"></div>
+      <div class="presets"><button id="resetFx">إرجاع القيم الافتراضية</button></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ الأزرار ============ -->
+<div id="actions">
+  <button class="main" id="btnPrint">🖨  طباعة مباشرة</button>
+  <div class="row">
+    <button class="b-pdf" id="btnPdf">📄 حفظ PDF</button>
+    <button class="b-save" id="btnSave">💾 حفظ صورة</button>
+    <button class="b-share" id="btnShare">📤 مشاركة</button>
+  </div>
+</div>
+
+<!-- ============ نوافذ ============ -->
+<div class="modal" id="mPass"><div class="box">
+  <h3>تغيير الرمز السري</h3>
+  <div class="in">
+    <input id="p0" type="password" placeholder="الرمز الحالي">
+    <input id="p1" type="password" placeholder="الرمز الجديد">
+    <input id="p2" type="password" placeholder="تأكيد الرمز الجديد">
+  </div>
+  <div class="btns"><button class="no" data-close>إلغاء</button><button class="ok" id="pSave">حفظ</button></div>
+</div></div>
+
+<div class="modal" id="mHelp"><div class="box">
+  <h3>طريقة الاستخدام</h3>
+  <div class="in"><p>
+    ١. حمّل وجه وظهر كل هوية — تكدر تصوّرها بالكاميرا مباشرة أو تختارها من المعرض.<br>
+    ٢. اضبط قياس البطاقة بالسنتمتر، الافتراضي ٨.٦ × ٥.٦.<br>
+    ٣. عدّل الإضاءة والوضوح إذا الصورة باهتة.<br>
+    ٤. اضغط طباعة مباشرة — يفتح لك طابعات الهاتف (واي فاي أو USB) أو حفظ PDF.<br><br>
+    مهم عند الطباعة: اختر ورقة A4 واجعل المقياس ١٠٠٪ أو "الحجم الفعلي" حتى تطلع الهوية بقياسها الحقيقي.
+  </p></div>
+  <div class="btns"><button class="ok" data-close>تمام</button></div>
+</div></div>
+
+<div class="modal" id="mInstall"><div class="box">
+  <h3>تنصيب التطبيق على الآيفون</h3>
+  <div class="in"><p>
+    ١. اضغط زر المشاركة <b>􀈂</b> بأسفل سفاري.<br>
+    ٢. اختر <b>إضافة إلى الشاشة الرئيسية</b>.<br>
+    ٣. اضغط <b>إضافة</b>.<br><br>
+    راح تطلع أيقونة التطبيق بشاشة الآيفون ويفتح بملء الشاشة بدون شريط سفاري، ويشتغل حتى بدون إنترنت.
+  </p></div>
+  <div class="btns"><button class="ok" data-close>تمام</button></div>
+</div></div>
+
+<div class="modal" id="mEdit"><div class="box" style="max-width:420px">
+  <h3 id="edTitle">قص وتعديل الصورة</h3>
+  <div class="in" style="padding:12px">
+    <div style="background:#2b3444;border-radius:10px;overflow:hidden;touch-action:none">
+      <canvas id="edCv" style="display:block;width:100%;height:auto;max-height:44vh;object-fit:contain;margin:0 auto"></canvas>
+    </div>
+    <div class="row" style="display:flex;gap:7px;margin-top:10px">
+      <button class="tiny" id="edRot" style="flex:1">↻ تدوير</button>
+      <button class="tiny" id="edFlip" style="flex:1">⇋ قلب</button>
+      <button class="tiny" id="edFull" style="flex:1">⛶ الكل</button>
+      <button class="tiny" id="edCard" style="flex:1">▭ نسبة الهوية</button>
+    </div>
+    <div class="sld" style="margin-top:10px">
+      <div class="top"><span>السطوع</span><b id="vEb">1.00</b></div>
+      <input type="range" id="edB" min="0.5" max="1.6" step="0.02" value="1"></div>
+    <div class="sld"><div class="top"><span>التباين</span><b id="vEc">1.00</b></div>
+      <input type="range" id="edC" min="0.5" max="1.6" step="0.02" value="1"></div>
+    <p class="note" style="font-size:12px;color:#5d6b80;margin:6px 0 0">
+      اسحب داخل المربع لتحريكه، ومن الزوايا لتغيير حجمه</p>
+    <button class="tiny" id="edSwap" style="width:100%;margin-top:9px">
+      🖼 استبدال الصورة</button>
+  </div>
+  <div class="btns"><button class="no" data-close>إلغاء</button>
+    <button class="ok" id="edApply">✔ تم — حفظ القص</button></div>
+</div></div>
+
+<div id="busy"><div>جاري التحضير…</div></div>
+<div id="toast"></div>
+<div id="printArea"><img id="printImg" alt=""></div>
+
+<script>
+"use strict";
+
+/* ============ إعدادات المطوّر ============ */
+const PASSWORD  = "1234";                 // رمز الدخول — غيّره من هنا
+const DEVELOPER = "تطوير وتصميم: سجاد الزويني";          // اسمك يظهر تحت العنوان
+const WHATSAPP  = "";                     // رقم واتساب (اختياري)
+
+/* ============ ثوابت ============ */
+const A4W = 21.0, A4H = 29.7;
+const PRINT_DPI = 300, PREVIEW_DPI = 96;
+const cm2px = (cm, dpi) => Math.max(1, Math.round(cm / 2.54 * dpi));
+const $ = id => document.getElementById(id);
+
+/* آيفون / آيباد */
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+/* بعض إصدارات سفاري ما تدعم فلاتر الكانفس — نكشفها ونعوّضها يدوياً */
+const HAS_FILTER = (() => {
+  try {
+    const x = document.createElement("canvas").getContext("2d");
+    x.filter = "brightness(1.5)";
+    return x.filter === "brightness(1.5)";
+  } catch (e) { return false; }
+})();
+
+/* ============ مولّد PDF بقياس A4 حقيقي (بدون مكتبات) ============ */
+function buildPDF(jpeg, pxW, pxH){
+  const PW = 595.276, PH = 841.89;            // A4 بالنقاط
+  const enc = new TextEncoder();
+  const chunks = []; let len = 0; const off = [];
+  const put = d => { const u = (typeof d === "string") ? enc.encode(d) : d;
+                     chunks.push(u); len += u.length; };
+  const obj = (n, dict, stream) => {
+    off[n] = len;
+    put(n + " 0 obj\n" + dict + "\n");
+    if (stream){ put("stream\n"); put(stream); put("\nendstream\n"); }
+    put("endobj\n");
+  };
+  const content = enc.encode("q\n" + PW + " 0 0 " + PH + " 0 0 cm\n/Im0 Do\nQ\n");
+
+  put("%PDF-1.4\n");
+  obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + PW + " " + PH +
+         "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+  obj(4, "<< /Type /XObject /Subtype /Image /Width " + pxW + " /Height " + pxH +
+         " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " +
+         jpeg.length + " >>", jpeg);
+  obj(5, "<< /Length " + content.length + " >>", content);
+
+  const xref = len;
+  let t = "xref\n0 6\n0000000000 65535 f \n";
+  for (let i = 1; i <= 5; i++) t += String(off[i]).padStart(10, "0") + " 00000 n \n";
+  put(t);
+  put("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF");
+  return new Blob(chunks, {type:"application/pdf"});
+}
+
+let pass = PASSWORD;
+const slots = [0,1,2,3].map(() => ({front:null, back:null}));
+
+/* ============ شاشة الدخول ============ */
+$("devLine").textContent = DEVELOPER + (WHATSAPP ? "  ·  " + WHATSAPP : "");
+$("lockBtn").onclick = tryUnlock;
+$("lockPin").addEventListener("keydown", e => { if (e.key === "Enter") tryUnlock(); });
+function tryUnlock(){
+  if ($("lockPin").value === pass){
+    $("lock").style.display = "none";
+    render();
+  } else {
+    $("lockErr").textContent = "رمز الدخول غير صحيح";
+    $("lockPin").value = "";
+  }
+}
+
+/* ============ بناء خانات الهويات ============ */
+const slotsBox = $("slots");
+for (let i = 0; i < 4; i++){
+  const d = document.createElement("div");
+  d.className = "slot";
+  d.innerHTML =
+    '<div class="cap">اضغط على صورة محمّلة لقصّها — الهوية رقم ' + ["١","٢","٣","٤"][i] + '</div>' +
+    '<div class="row">' +
+      '<button class="pick" data-i="' + i + '" data-s="front">اختيار الوجه</button>' +
+      '<button class="pick" data-i="' + i + '" data-s="back">اختيار الظهر</button>' +
+      '<button class="del" data-i="' + i + '">✖</button>' +
+    '</div><div class="thumbs" id="th' + i + '"></div>';
+  slotsBox.appendChild(d);
+}
+
+const filePick = document.createElement("input");
+filePick.type = "file";
+filePick.accept = "image/*";
+filePick.style.display = "none";
+document.body.appendChild(filePick);
+let target = null;
+
+slotsBox.addEventListener("click", e => {
+  const p = e.target.closest(".pick");
+  if (p){
+    const i = +p.dataset.i, side = p.dataset.s;
+    if (slots[i][side]){ openEditor(i, side); return; }   // موجودة ← تعديل
+    target = {i, s:side}; filePick.value = ""; filePick.click(); return;
+  }
+  const d = e.target.closest(".del");
+  if (d) clearSlot(+d.dataset.i);
+});
+
+filePick.addEventListener("change", async () => {
+  const f = filePick.files && filePick.files[0];
+  if (!f || !target) return;
+  busy(true, "جاري تحميل الصورة…");
+  try {
+    slots[target.i][target.s] = await loadImage(f);
+    paintSlot(target.i);
+    render();
+  } catch (err) {
+    toast("تعذّر فتح الصورة — جرّب صورة ثانية");
+  }
+  busy(false);
+});
+
+function loadImage(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error("read"));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => rej(new Error("decode"));
+      im.onload = () => {
+        // تصغير الأصل للحفاظ على ذاكرة الهاتف
+        const MAX = 2400;
+        let w = im.naturalWidth, h = im.naturalHeight;
+        if (Math.max(w, h) > MAX){
+          const k = MAX / Math.max(w, h);
+          w = Math.round(w * k); h = Math.round(h * k);
+        }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(im, 0, 0, w, h);
+        res(c);
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+function paintSlot(i){
+  const btns = slotsBox.querySelectorAll('.pick[data-i="' + i + '"]');
+  btns.forEach(b => {
+    const has = !!slots[i][b.dataset.s];
+    b.classList.toggle("done", has);
+    b.textContent = b.dataset.s === "front"
+      ? (has ? "تم الوجه ✔" : "اختيار الوجه")
+      : (has ? "تم الظهر ✔" : "اختيار الظهر");
+  });
+  const th = $("th" + i);
+  th.innerHTML = "";
+  ["front","back"].forEach(s => {
+    const c = slots[i][s];
+    if (!c) return;
+    const im = new Image();
+    im.src = c.toDataURL("image/jpeg", 0.5);
+    th.appendChild(im);
+  });
+}
+
+function clearSlot(i){
+  slots[i].front = slots[i].back = null;
+  slots[i].front_orig = slots[i].back_orig = null;
+  paintSlot(i);
+  render();
+}
+
+
+/* ================= محرر الصورة: قص وتعديل ================= */
+const ED = { i:0, side:"front", src:null, rot:0, flip:false, crop:null, drag:null };
+const CARD_RATIO = 8.6 / 5.6;
+
+function edFilter(){ return "brightness("+$("edB").value+") contrast("+$("edC").value+")"; }
+function edSource(){
+  const im = ED.src, r = ((ED.rot % 360) + 360) % 360, swap = (r === 90 || r === 270);
+  const c = document.createElement("canvas");
+  c.width  = swap ? im.height : im.width;
+  c.height = swap ? im.width  : im.height;
+  const x = c.getContext("2d");
+  x.save(); x.translate(c.width/2, c.height/2); x.rotate(r*Math.PI/180);
+  if (ED.flip) x.scale(-1,1);
+  x.drawImage(im, -im.width/2, -im.height/2); x.restore();
+  return c;
+}
+function edDraw(){
+  const src = edSource(), cv = $("edCv");
+  const lim = Math.min(380, Math.round(window.innerHeight*0.40));
+  const k = Math.min(380/src.width, lim/src.height);
+  cv.width = Math.round(src.width*k); cv.height = Math.round(src.height*k);
+  const x = cv.getContext("2d");
+  x.filter = edFilter(); x.drawImage(src,0,0,cv.width,cv.height); x.filter = "none";
+  if (!ED.crop) ED.crop = {x:.03,y:.03,w:.94,h:.94};
+  const C = ED.crop;
+  const rx=C.x*cv.width, ry=C.y*cv.height, rw=C.w*cv.width, rh=C.h*cv.height;
+  x.fillStyle = "rgba(10,18,35,.55)";
+  x.fillRect(0,0,cv.width,ry);
+  x.fillRect(0,ry+rh,cv.width,cv.height-ry-rh);
+  x.fillRect(0,ry,rx,rh);
+  x.fillRect(rx+rw,ry,cv.width-rx-rw,rh);
+  x.strokeStyle="#fff"; x.lineWidth=2; x.strokeRect(rx,ry,rw,rh);
+  x.strokeStyle="rgba(255,255,255,.45)"; x.lineWidth=1;
+  for(let i=1;i<3;i++){
+    x.beginPath(); x.moveTo(rx+rw*i/3,ry); x.lineTo(rx+rw*i/3,ry+rh); x.stroke();
+    x.beginPath(); x.moveTo(rx,ry+rh*i/3); x.lineTo(rx+rw,ry+rh*i/3); x.stroke();
+  }
+  x.fillStyle="#fff";
+  [[rx,ry],[rx+rw,ry],[rx,ry+rh],[rx+rw,ry+rh]].forEach(([a,b])=>{
+    x.beginPath(); x.arc(a,b,9,0,7); x.fill(); });
+}
+function edPos(e){
+  const r=$("edCv").getBoundingClientRect(), t=e.touches?e.touches[0]:e;
+  return {x:(t.clientX-r.left)/r.width, y:(t.clientY-r.top)/r.height};
+}
+function edStart(e){
+  const p=edPos(e), C=ED.crop; if(!C) return;
+  const hs=.055, k={nw:[C.x,C.y],ne:[C.x+C.w,C.y],sw:[C.x,C.y+C.h],se:[C.x+C.w,C.y+C.h]};
+  for(const n in k){
+    if(Math.abs(p.x-k[n][0])<hs && Math.abs(p.y-k[n][1])<hs){
+      ED.drag={t:n}; e.preventDefault(); return; }
+  }
+  if(p.x>C.x&&p.x<C.x+C.w&&p.y>C.y&&p.y<C.y+C.h){
+    ED.drag={t:"move",ox:p.x-C.x,oy:p.y-C.y}; e.preventDefault(); }
+}
+function edMove(e){
+  if(!ED.drag) return;
+  e.preventDefault();
+  const p=edPos(e), C=ED.crop, MIN=.06;
+  if(ED.drag.t==="move"){
+    C.x=Math.min(1-C.w,Math.max(0,p.x-ED.drag.ox));
+    C.y=Math.min(1-C.h,Math.max(0,p.y-ED.drag.oy));
+  } else {
+    const R=C.x+C.w, B=C.y+C.h;
+    if(ED.drag.t.includes("w")){ const nx=Math.min(R-MIN,Math.max(0,p.x)); C.w=R-nx; C.x=nx; }
+    else C.w=Math.min(1-C.x,Math.max(MIN,p.x-C.x));
+    if(ED.drag.t.startsWith("n")){ const ny=Math.min(B-MIN,Math.max(0,p.y)); C.h=B-ny; C.y=ny; }
+    else C.h=Math.min(1-C.y,Math.max(MIN,p.y-C.y));
+  }
+  edDraw();
+}
+const edEl=$("edCv");
+edEl.addEventListener("touchstart",edStart,{passive:false});
+edEl.addEventListener("touchmove",edMove,{passive:false});
+edEl.addEventListener("touchend",()=>ED.drag=null);
+edEl.addEventListener("mousedown",edStart);
+edEl.addEventListener("mousemove",edMove);
+window.addEventListener("mouseup",()=>ED.drag=null);
+
+function openEditor(i, side){
+  const c = slots[i][side]; if(!c) return;
+  ED.i=i; ED.side=side;
+  ED.src = slots[i][side+"_orig"] || c;
+  ED.rot=0; ED.flip=false; ED.crop=null;
+  $("edB").value=1; $("edC").value=1;
+  $("vEb").textContent="1.00"; $("vEc").textContent="1.00";
+  $("edTitle").textContent = "قص وتعديل — الهوية " + ["١","٢","٣","٤"][i] +
+                             (side==="front" ? " · الوجه" : " · الظهر");
+  $("mEdit").classList.add("on");
+  setTimeout(edDraw,60);
+}
+["edB","edC"].forEach((id,n)=>{
+  $(id).addEventListener("input",()=>{
+    $(["vEb","vEc"][n]).textContent=parseFloat($(id).value).toFixed(2); edDraw(); });
+});
+$("edRot").onclick=()=>{ ED.rot=(ED.rot+90)%360; ED.crop=null; edDraw(); };
+$("edFlip").onclick=()=>{ ED.flip=!ED.flip; edDraw(); };
+$("edFull").onclick=()=>{ ED.crop={x:0,y:0,w:1,h:1}; edDraw(); };
+$("edCard").onclick=()=>{                     // قص بنسبة الهوية
+  const src=edSource(), ar=src.width/src.height;
+  let w=1,h=1;
+  if(ar > CARD_RATIO) w = CARD_RATIO/ar; else h = ar/CARD_RATIO;
+  ED.crop={x:(1-w)/2, y:(1-h)/2, w, h};
+  edDraw();
+};
+$("edSwap").onclick=()=>{
+  target={i:ED.i, s:ED.side};
+  $("mEdit").classList.remove("on");
+  filePick.value=""; filePick.click();
+};
+$("edApply").onclick=()=>{
+  const src=edSource(), C=ED.crop||{x:0,y:0,w:1,h:1};
+  const sx=Math.round(C.x*src.width), sy=Math.round(C.y*src.height);
+  const sw=Math.max(1,Math.round(C.w*src.width)), sh=Math.max(1,Math.round(C.h*src.height));
+  const out=document.createElement("canvas"); out.width=sw; out.height=sh;
+  const x=out.getContext("2d");
+  x.filter=edFilter();
+  x.drawImage(src,sx,sy,sw,sh,0,0,sw,sh);
+  if(!slots[ED.i][ED.side+"_orig"]) slots[ED.i][ED.side+"_orig"]=slots[ED.i][ED.side];
+  slots[ED.i][ED.side]=out;
+  $("mEdit").classList.remove("on");
+  paintSlot(ED.i); render();
+  toast("تم تطبيق التعديل");
+};
+
+
+/* ============ قراءة الإعدادات ============ */
+function num(id, def, lo, hi){
+  const v = parseFloat($(id).value);
+  if (!isFinite(v)) return def;
+  return Math.min(hi, Math.max(lo, v));
+}
+const S = () => ({
+  w: num("cardW", 8.6, 1, 20), h: num("cardH", 5.6, 1, 28),
+  n: Math.round(num("count", 4, 1, 4)), copies: Math.round(num("copies", 1, 1, 4)),
+  mg: num("margin", 1, 0, 5), gp: num("gap", 0.4, 0, 3),
+  cut: $("cut").checked, rot: $("autorot").checked,
+  b: parseFloat($("bright").value), c: parseFloat($("contrast").value),
+  s: parseFloat($("sharp").value)
+});
+
+function collect(){
+  const st = S(), out = [];
+  for (let i = 0; i < st.n; i++){
+    if (slots[i].front) out.push(slots[i].front);
+    if (slots[i].back)  out.push(slots[i].back);
+  }
+  const all = [];
+  for (let k = 0; k < st.copies; k++) all.push(...out);
+  return all;
+}
+
+/* ============ معالجة صورة البطاقة ============ */
+function adjust(ctx, w, h, st, doBC){
+  const sh = Math.abs(st.s - 1) >= 0.03;
+  const bc = doBC && (Math.abs(st.b - 1) >= 0.02 || Math.abs(st.c - 1) >= 0.02);
+  if (!sh && !bc) return;
+
+  const src = ctx.getImageData(0, 0, w, h), d = src.data;
+
+  // سطوع وتباين يدوي (بديل سفاري القديم)
+  if (bc){
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) lut[v] = (v * st.b - 128) * st.c + 128;
+    for (let i = 0; i < d.length; i += 4){
+      d[i] = lut[d[i]]; d[i+1] = lut[d[i+1]]; d[i+2] = lut[d[i+2]];
+    }
+  }
+
+  // حدة (unsharp mask)
+  if (sh){
+    const a = (st.s - 1) * 1.3, W4 = w * 4;
+    const out = new Uint8ClampedArray(d);
+    for (let y = 1; y < h - 1; y++){
+      for (let x = 1; x < w - 1; x++){
+        const i = (y * w + x) * 4;
+        for (let k = 0; k < 3; k++){
+          const c = d[i + k];
+          const avg = (d[i - 4 + k] + d[i + 4 + k] + d[i - W4 + k] + d[i + W4 + k]) * 0.25;
+          out[i + k] = c + a * (c - avg);
+        }
+      }
+    }
+    ctx.putImageData(new ImageData(out, w, h), 0, 0);
+    return;
+  }
+  ctx.putImageData(src, 0, 0);
+}
+
+function cardCanvas(src, cw, ch, st){
+  const c = document.createElement("canvas");
+  c.width = cw; c.height = ch;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, cw, ch);
+  if (HAS_FILTER) x.filter = "brightness(" + st.b + ") contrast(" + st.c + ")";
+
+  const needRot = st.rot && ((cw >= ch) !== (src.width >= src.height));
+  if (needRot){
+    x.save();
+    x.translate(cw / 2, ch / 2);
+    x.rotate(-Math.PI / 2);
+    x.drawImage(src, -ch / 2, -cw / 2, ch, cw);
+    x.restore();
+  } else {
+    x.drawImage(src, 0, 0, cw, ch);
+  }
+  if (HAS_FILTER) x.filter = "none";
+  adjust(x, cw, ch, st, !HAS_FILTER);
+  return c;
+}
+
+/* ============ بناء ورقة A4 ============ */
+function buildPage(dpi){
+  const st = S();
+  const pw = cm2px(A4W, dpi), ph = cm2px(A4H, dpi);
+  const c = document.createElement("canvas");
+  c.width = pw; c.height = ph;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, pw, ph);
+
+  const cw = cm2px(st.w, dpi), ch = cm2px(st.h, dpi);
+  const mg = cm2px(st.mg, dpi), gp = cm2px(st.gp, dpi);
+  const imgs = collect();
+  const cols = Math.max(1, Math.floor((pw - 2 * mg + gp) / (cw + gp)));
+
+  let placed = 0, y = mg;
+  for (const src of imgs){
+    const col = placed % cols;
+    if (col === 0 && placed > 0) y += ch + gp;
+    if (y + ch > ph - mg) break;
+    const px = mg + col * (cw + gp);
+    x.drawImage(cardCanvas(src, cw, ch, st), px, y);
+    if (st.cut){
+      x.strokeStyle = "#aaa"; x.lineWidth = Math.max(1, dpi / 300);
+      x.strokeRect(px + 0.5, y + 0.5, cw - 1, ch - 1);
+    }
+    placed++;
+  }
+  return {canvas:c, placed, total:imgs.length};
+}
+
+/* ============ المعاينة ============ */
+let job = null;
+function render(){
+  clearTimeout(job);
+  job = setTimeout(draw, 120);
+}
+function draw(){
+  const r = buildPage(PREVIEW_DPI);
+  const pv = $("preview");
+  pv.width = r.canvas.width; pv.height = r.canvas.height;
+  pv.getContext("2d").drawImage(r.canvas, 0, 0);
+
+  const st = S(), info = $("pinfo");
+  if (r.total === 0){
+    info.className = ""; info.textContent = "لم يتم تحميل أي صورة بعد";
+  } else if (r.placed < r.total){
+    info.className = "warn";
+    info.textContent = "تم وضع " + r.placed + " من " + r.total + " — قلّل الهامش أو القياس";
+  } else {
+    info.className = "";
+    info.textContent = "عدد الصور بالورقة: " + r.placed +
+      "   |   القياس: " + st.w.toFixed(1) + " × " + st.h.toFixed(1) + " سم";
+  }
+}
+
+["cardW","cardH","count","copies","margin","gap","cut","autorot"]
+  .forEach(id => $(id).addEventListener("input", render));
+
+[["bright","vB"],["contrast","vC"],["sharp","vS"]].forEach(([id, out]) => {
+  $(id).addEventListener("input", () => {
+    $(out).textContent = parseFloat($(id).value).toFixed(2);
+    render();
+  });
+});
+$("resetFx").onclick = () => {
+  ["bright","contrast","sharp"].forEach(id => $(id).value = 1);
+  ["vB","vC","vS"].forEach(id => $(id).textContent = "1.00");
+  render();
+};
+document.querySelectorAll(".presets [data-w]").forEach(b => {
+  b.onclick = () => { $("cardW").value = b.dataset.w; $("cardH").value = b.dataset.h; render(); };
+});
+document.querySelectorAll("section > h2").forEach(h => {
+  h.onclick = () => h.parentElement.classList.toggle("closed");
+});
+
+/* ============ الإخراج ============ */
+function hasImages(){
+  if (collect().length) return true;
+  toast("حمّل صورة واحدة على الأقل");
+  return false;
+}
+/* ينتج JPEG بدقة 300 وأبعاد الورقة */
+async function finalSheet(){
+  const r = buildPage(PRINT_DPI);
+  const blob = await new Promise(res => r.canvas.toBlob(res, "image/jpeg", 0.95));
+  return {blob, w:r.canvas.width, h:r.canvas.height};
+}
+async function finalPDF(){
+  const sh = await finalSheet();
+  const bytes = new Uint8Array(await sh.blob.arrayBuffer());
+  return buildPDF(bytes, sh.w, sh.h);
+}
+function saveBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+async function shareFile(blob, name, type){
+  try {
+    const file = new File([blob], name, {type});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"ورقة هويات A4"});
+      return true;
+    }
+  } catch (e){ if (e && e.name === "AbortError") return true; }
+  return false;
+}
+
+/* ---------- طباعة ---------- */
+$("btnPrint").onclick = $("tPrint").onclick = async () => {
+  if (!hasImages()) return;
+  busy(true, "جاري تحضير الورقة…");
+  await pause();
+  try {
+    if (IOS){
+      // على الآيفون: PDF بقياس A4 مضبوط ← قائمة المشاركة ← طباعة (AirPrint)
+      const pdf = await finalPDF();
+      busy(false);
+      if (!await shareFile(pdf, "هويات_A4.pdf", "application/pdf")){
+        saveBlob(pdf, "هويات_A4.pdf");
+        toast("تم حفظ PDF — افتحه واضغط طباعة");
+      }
+    } else {
+      const sh = await finalSheet();
+      const url = URL.createObjectURL(sh.blob);
+      $("printImg").src = url;
+      await pause(500);
+      busy(false);
+      window.print();
+      setTimeout(() => URL.revokeObjectURL(url), 20000);
+    }
+  } catch (e){ busy(false); toast("تعذّر تحضير الطباعة — قلّل عدد الصور"); }
+};
+
+/* ---------- حفظ PDF ---------- */
+$("btnPdf").onclick = $("tPdf").onclick = async () => {
+  if (!hasImages()) return;
+  busy(true, "جاري تحضير PDF…");
+  await pause();
+  try {
+    const pdf = await finalPDF();
+    busy(false);
+    if (IOS){
+      if (!await shareFile(pdf, "هويات_A4.pdf", "application/pdf"))
+        saveBlob(pdf, "هويات_A4.pdf");
+    } else {
+      saveBlob(pdf, "هويات_A4_" + Date.now() + ".pdf");
+      toast("تم حفظ PDF بمجلد التنزيلات");
+    }
+  } catch (e){ busy(false); toast("تعذّر إنشاء PDF"); }
+};
+
+/* ---------- حفظ صورة ---------- */
+$("btnSave").onclick = $("tSave").onclick = async () => {
+  if (!hasImages()) return;
+  busy(true, "جاري حفظ الصورة…");
+  await pause();
+  try {
+    const sh = await finalSheet();
+    busy(false);
+    if (IOS){
+      // سفاري ما يدعم التنزيل المباشر — نمرّرها لقائمة المشاركة لتنحفظ بالصور
+      if (!await shareFile(sh.blob, "هويات_A4.jpg", "image/jpeg"))
+        saveBlob(sh.blob, "هويات_A4.jpg");
+    } else {
+      saveBlob(sh.blob, "هويات_A4_" + Date.now() + ".jpg");
+      toast("تم حفظ الورقة بمجلد التنزيلات");
+    }
+  } catch (e){ busy(false); toast("تعذّر الحفظ"); }
+};
+
+/* ---------- مشاركة ---------- */
+$("btnShare").onclick = $("tShare").onclick = async () => {
+  if (!hasImages()) return;
+  busy(true, "جاري التحضير…");
+  await pause();
+  try {
+    const sh = await finalSheet();
+    busy(false);
+    if (!await shareFile(sh.blob, "هويات_A4.jpg", "image/jpeg"))
+      toast("المشاركة غير مدعومة — استخدم حفظ صورة");
+  } catch (e){ busy(false); }
+};
+
+/* ---------- مسح ---------- */
+$("tClear").onclick = () => {
+  if (!collect().length) return toast("لا توجد صور");
+  for (let i = 0; i < 4; i++) clearSlot(i);
+  toast("تم مسح جميع الصور");
+};
+
+$("tOpen").onclick = () => {
+  for (let i = 0; i < 4; i++){
+    for (const s of ["front","back"]){
+      if (!slots[i][s]){ target = {i, s}; filePick.value = ""; filePick.click(); return; }
+    }
+  }
+  toast("كل الخانات ممتلئة");
+};
+
+$("tRot").onclick = () => {
+  let n = 0;
+  for (const sl of slots){
+    for (const s of ["front","back"]){
+      const src = sl[s];
+      if (!src) continue;
+      const c = document.createElement("canvas");
+      c.width = src.height; c.height = src.width;
+      const x = c.getContext("2d");
+      x.translate(c.width / 2, c.height / 2);
+      x.rotate(Math.PI / 2);
+      x.drawImage(src, -src.width / 2, -src.height / 2);
+      sl[s] = c; n++;
+    }
+  }
+  if (!n) return toast("لا توجد صور");
+  slots.forEach((_, i) => paintSlot(i));
+  render();
+};
+
+/* ============ الرمز السري والمساعدة ============ */
+$("tPass").onclick = () => { ["p0","p1","p2"].forEach(i => $(i).value = ""); $("mPass").classList.add("on"); };
+$("tHelp").onclick = () => $("mHelp").classList.add("on");
+document.querySelectorAll("[data-close]").forEach(b => {
+  b.onclick = () => b.closest(".modal").classList.remove("on");
+});
+$("pSave").onclick = () => {
+  if ($("p0").value !== pass) return toast("الرمز الحالي غير صحيح");
+  if ($("p1").value.length < 3) return toast("الرمز الجديد قصير جداً");
+  if ($("p1").value !== $("p2").value) return toast("الرمزان غير متطابقين");
+  pass = $("p1").value;
+  $("mPass").classList.remove("on");
+  toast("تم تغيير الرمز لهذه الجلسة");
+};
+
+/* ============ أدوات مساعدة ============ */
+function busy(on, txt){
+  if (txt) $("busy").firstElementChild.textContent = txt;
+  $("busy").classList.toggle("on", !!on);
+}
+let tId = null;
+function toast(m){
+  const t = $("toast");
+  t.textContent = m; t.classList.add("on");
+  clearTimeout(tId);
+  tId = setTimeout(() => t.classList.remove("on"), 2400);
+}
+const pause = (ms = 60) => new Promise(r => setTimeout(r, ms));
+
+/* ============ تنصيب التطبيق ============ */
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  installEvt = e;
+  $("btnInstall").style.display = "block";
+});
+$("btnInstall").onclick = async () => {
+  if (installEvt){
+    installEvt.prompt();
+    await installEvt.userChoice;
+    installEvt = null;
+    $("btnInstall").style.display = "none";
+  }
+};
+
+/* الآيفون ما يعطي دعوة تلقائية — نعرض الشرح */
+const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+                   navigator.standalone === true;
+if (IOS && !standalone){
+  $("iosTip").style.display = "block";
+  $("iosTip").onclick = () => $("mInstall").classList.add("on");
+}
+
+draw();
+</script>
+</body>
+</html>
