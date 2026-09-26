@@ -1,5 +1,5 @@
 /* نظام طباعة الهويات — عامل الخدمة (تشغيل بدون إنترنت) */
-const CACHE = "cover-designer-v15";
+const CACHE = "id-print-v5";
 const FILES = [
   "./",
   "./index.html",
@@ -7,8 +7,7 @@ const FILES = [
   "./icon-192.png",
   "./icon-512.png",
   "./icon-maskable.png",
-  "./apple-touch-icon.png",
-  "./backgrounds.json"
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", e => {
